@@ -1,4 +1,4 @@
-pygetwindow
-pyautogui
+win32gui
 pytesseract
 fuzzywuzzy
+PyQt5
