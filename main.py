@@ -1,4 +1,3 @@
-import pygetwindow as gw
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import *
 import pytesseract
@@ -102,11 +101,11 @@ def ocr_with_custom_dict(image_path, custom_dict_path):
     text = pytesseract.image_to_string(Image.open(image_path), config=custom_config, lang='chi_sim')
     return autoreplace(text.replace("\n", ""))
 
-def ocr_thread(image_path, custom_dict_path, result_queue, i):
+def ocr_thread(image_path, custom_dict_path, result_dict, i):
     text = ocr_with_custom_dict(image_path, custom_dict_path)
     if i == 4 and text == "":
         text = "n. 防腐剂"
-    result_queue.update({i: text})
+    result_dict.update({i: text})
 
 replace_list = load_from_json(json_replace_path)
 def autoreplace(text):
@@ -130,7 +129,7 @@ if __name__ == "__main__":
         i = 0
 
         # 使用字典存储线程结果
-        result_queue = {}
+        result_dict = {}
 
         threads = []
 
@@ -138,9 +137,9 @@ if __name__ == "__main__":
             if screenshot_path:
                 # 创建线程
                 if i == 0:
-                    thread = threading.Thread(target=ocr_thread, args=(screenshot_path, ques_path, result_queue, i))
+                    thread = threading.Thread(target=ocr_thread, args=(screenshot_path, ques_path, result_dict, i))
                 else:
-                    thread = threading.Thread(target=ocr_thread, args=(screenshot_path, ans_path, result_queue, i))
+                    thread = threading.Thread(target=ocr_thread, args=(screenshot_path, ans_path, result_dict, i))
                 threads.append(thread)
                 i += 1
 
@@ -153,14 +152,29 @@ if __name__ == "__main__":
             thread.join()
 
         # 从队列中获取结果
-        if result_queue:
-            result_text = [result_queue[key] for key in sorted(result_queue.keys())]
+        if result_dict:
+            result_text = [result_dict[key] for key in sorted(result_dict.keys())]
 
         # 输出识别结果
         print(result_text)
         with open(log_file_path, 'a', encoding='utf-8') as log_file:
             log_file.write(str(result_text) + '\n')
-        if result_text[1] != "恭喜你!":
+        if result_text[1] == "恭喜你!":
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
+            time.sleep(0.5)
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(400 * scale_width), int(840 * scale_height)))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(400 * scale_width), int(840 * scale_height)))
+            time.sleep(4.8)
+        elif result_text[1] == "PK结果提交失败":
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(540 * scale_height)))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(540 * scale_height)))
+            time.sleep(0.5)
+        elif result_text[3].find("世界各地的饮食") != -1: # 找到字符
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(840 * scale_height)))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(840 * scale_height)))
+            time.sleep(4.8)
+        else:
             new_list = result_text[1:]
             ques = process.extractOne(result_text[0].lower(), ques_list)
             ques_str = ques[0]
@@ -169,19 +183,9 @@ if __name__ == "__main__":
             ex_ans = process.extractOne(ans, new_list)
             ex_ans_str = ex_ans[0]
             locate = new_list.index(ex_ans_str) # 答案位置
-            print(ex_ans_str, locate)
-            targety = [520, 612, 704, 796] # 答案相对坐标
+            print("Chooce：", ex_ans_str, locate)
+            targety = [520, 612, 704, 796] # 答案相对y坐标
             target_y = int((targety[locate] - 40) * scale_height)
-            #pyautogui.click(mumu_x + 260 * scale_width, mumu_y + target_y)
             win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
             win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
             time.sleep(0.9)
-        else:
-            #pyautogui.click(mumu_x + 260 * scale_width, mumu_y + 650 * scale_height)
-            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
-            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
-            time.sleep(0.5)
-            #pyautogui.click(mumu_x + 400 * scale_width, mumu_y + 880 * scale_height)
-            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(400 * scale_width), int(840 * scale_height)))
-            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(400 * scale_width), int(840 * scale_height)))
-            time.sleep(4.8)
