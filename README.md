@@ -19,6 +19,7 @@
 
 6. ocr-custom中为ocr词库，更换单词建议按格式修改
 
+7. 缓存过大时运行[clear.bat](https://github.com/ntgmc/ets_autopk/blob/main/clear.bat)，自动删除缓存  
 ## 错误纠正方法  
 修改[json\replace.json](https://github.com/ntgmc/ets_autopk/blob/main/json/replace.json)  
 

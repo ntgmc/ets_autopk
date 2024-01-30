@@ -17,6 +17,7 @@ json_ques_path = os.path.join(USER_PATH, "json", "ques.json")
 json_ans_path = os.path.join(USER_PATH, "json", "ans.json")
 json_replace_path = os.path.join(USER_PATH, "json", "replace.json")
 log_file_path = os.path.join(USER_PATH, "log", "ocr.log")
+folder_list = ["log", "png"]
 scale_width, scale_height = 0,0
 def load_from_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as json_file:
@@ -25,6 +26,10 @@ def load_from_json(file_path):
 
 # 设置 Tesseract OCR 引擎路径（根据你的安装路径进行修改）
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+def create_folder_if_not_exists(folder_path):
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
 
 def capture_screenshot():
     global mumu_x, mumu_y, mumu_width, mumu_height
@@ -100,6 +105,8 @@ if __name__ == "__main__":
     words = load_from_json(json_words_path)
     ques_list = load_from_json(json_ques_path)
     ans_list = load_from_json(json_ans_path)
+    for folder in folder_list:
+        create_folder_if_not_exists(os.path.join(USER_PATH, folder))
     # 截图窗口
     while True:
         screenshot_path_list = capture_screenshot()
