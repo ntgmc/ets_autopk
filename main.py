@@ -157,8 +157,6 @@ if __name__ == "__main__":
 
         # 输出识别结果
         print(result_text)
-        with open(log_file_path, 'a', encoding='utf-8') as log_file:
-            log_file.write(str(result_text) + '\n')
         if result_text[1] == "恭喜你!":
             win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
             win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
@@ -184,6 +182,9 @@ if __name__ == "__main__":
             ex_ans_str = ex_ans[0]
             locate = new_list.index(ex_ans_str) # 答案位置
             print("Chooce：", ex_ans_str, locate)
+            if ex_ans_str != ans: # 非精确匹配时才输出log           
+                with open(log_file_path, 'a', encoding='utf-8') as log_file:
+                    log_file.write(str(result_text) + '\n')
             targety = [520, 612, 704, 796] # 答案相对y坐标
             target_y = int((targety[locate] - 40) * scale_height)
             win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
