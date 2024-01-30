@@ -99,7 +99,7 @@ def ocr_with_custom_dict(image_path, custom_dict_path):
     # 运行 OCR
     custom_config = f'--user-words {",".join(custom_words)}'
     text = pytesseract.image_to_string(Image.open(image_path), config=custom_config, lang='chi_sim')
-    return autoreplace(text.replace("\n", ""))
+    return autoreplace(text)
 
 def ocr_thread(image_path, custom_dict_path, result_dict, i):
     text = ocr_with_custom_dict(image_path, custom_dict_path)
@@ -189,4 +189,4 @@ if __name__ == "__main__":
             target_y = int((targety[locate] - 40) * scale_height)
             win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
             win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
-            time.sleep(0.9)
+            time.sleep(1.1)
