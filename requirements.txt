@@ -1,0 +1,4 @@
+pygetwindow
+pyautogui
+pytesseract
+fuzzywuzzy
