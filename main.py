@@ -53,9 +53,9 @@ def capture_screenshot():
 
             # 分割图像
             cropped_img = screenshot.crop((x, y, x+w, y+h))
-            now_save_path = os.path.join(USER_PATH, "png", f"{nowtime}_region_{i}.png")
+            now_save_path = os.path.join(USER_PATH, "png", f"region_{i}.png")
             # 保存截图到指定目录
-            screenshot.save(os.path.join(USER_PATH, "png", f"{nowtime}_screenshot.png"))
+            screenshot.save(os.path.join(USER_PATH, "png", f"screenshot.png"))
             cropped_img.save(now_save_path)
             save_path.append(now_save_path)
 
