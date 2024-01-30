@@ -1,14 +1,16 @@
 import pygetwindow as gw
-import pyautogui
+from PyQt5.QtWidgets import QApplication
+from PyQt5.QtGui import *
 import pytesseract
 from PIL import Image
 import json
 import time
 from fuzzywuzzy import process
 import threading
-from queue import Queue
+import sys
 import os
-mumu_x, mumu_y, mumu_width, mumu_height = 0,0,0,0
+import win32api, win32gui, win32con
+mumu_hwnd, mumu_child_hwnd = 0,0
 USER_PATH = os.path.dirname(os.path.abspath(__file__))
 ques_path = os.path.join(USER_PATH, "ocr_custom", "ques.txt")
 ans_path = os.path.join(USER_PATH, "ocr_custom", "anss.txt")
@@ -31,38 +33,49 @@ def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
+def enumerate_child_windows(parent_hwnd):
+    def callback(hwnd, windows):
+        windows.append(hwnd)
+        return True
+    child_windows = []
+    win32gui.EnumChildWindows(parent_hwnd, callback, child_windows)
+    return child_windows
+def get_all_windows():
+    global mumu_hwnd, mumu_child_hwnd
+    # 获取窗口句柄
+    mumu_hwnd = win32gui.FindWindow("Qt5156QWindowIcon", "Z")
+    mumu_child_hwnd = enumerate_child_windows(mumu_hwnd)[0]
+    print(mumu_child_hwnd)
+def split_qimage(qimage, x, y, width, height):
+    # 创建一个子图像
+    sub_image = qimage.copy(x, y, width, height)
+    return sub_image
 def capture_screenshot():
-    global mumu_x, mumu_y, mumu_width, mumu_height
-    # 获取窗口对象
-    mumu_window = gw.getWindowsWithTitle("Z") # 在这里填写模拟器标题
+    window_rect = win32gui.GetWindowRect(mumu_child_hwnd)
+    global scale_width, scale_height
+    scale_width, scale_height = (window_rect[2] - window_rect[0]) / 524, (window_rect[3] - window_rect[1])/ 932
+    q_x, q_y, q_width, q_height = 60 * scale_width, 300 * scale_height, 370 * scale_width, 80 * scale_height # 相对坐标
+    a_x, a_width, a_height = 40 * scale_width, 453 * scale_width, 74 # 相对坐标
+    a1_y, a2_y, a3_y, a4_y = 440 * scale_height, 535 * scale_height, 627 * scale_height, 727 * scale_height # 相对坐标
+    regions = [(q_x, q_y, q_width, q_height), (a_x, a1_y, a_width, a_height), (a_x, a2_y, a_width, a_height), (a_x, a3_y, a_width, a_height), (a_x, a4_y, a_width, a_height)]
+
     save_path = []
-    if mumu_window:
-        mumu_window = mumu_window[0]  # 如果有多个相同标题的窗口，选择第一个
-        mumu_x, mumu_y, mumu_width, mumu_height = mumu_window.left, mumu_window.top, mumu_window.width, mumu_window.height
-        global scale_width, scale_height
-        scale_width, scale_height = mumu_window.width / 532, mumu_window.height / 972
-        q_x, q_y, q_width, q_height = 60 * scale_width, 339 * scale_height, 370 * scale_width, 80 * scale_height # 相对坐标
-        a_x, a_width, a_height = 40 * scale_width, 453 * scale_width, 74 # 相对坐标
-        a1_y, a2_y, a3_y, a4_y = 480 * scale_height, 575 * scale_height, 667 * scale_height, 757 * scale_height # 相对坐标
-        regions = [(q_x, q_y, q_width, q_height), (a_x, a1_y, a_width, a_height), (a_x, a2_y, a_width, a_height), (a_x, a3_y, a_width, a_height), (a_x, a4_y, a_width, a_height)]
-        # 截取窗口的屏幕截图
-        screenshot = pyautogui.screenshot(region=(mumu_x, mumu_y, mumu_width, mumu_height))
-        nowtime = time.time()
-        for i, region in enumerate(regions):
-            x, y, w, h = region
+    app = QApplication(sys.argv)
+    # 截取窗口的屏幕截图
+    screen = QApplication.primaryScreen()
+    screenshot = screen.grabWindow(mumu_child_hwnd).toImage()
+    for i, region in enumerate(regions):
+        x, y, w, h = region
+        # 分割图像
+        cropped_img = split_qimage(screenshot, x, y, w, h)
+        now_save_path = os.path.join(USER_PATH, "png", f"region_{i}.png")
+        # 保存截图到指定目录
+        cropped_img.save(now_save_path)
+        save_path.append(now_save_path)
+    screenshot.save(os.path.join(USER_PATH, "png", f"screenshot.png"))
+    return save_path
 
-            # 分割图像
-            cropped_img = screenshot.crop((x, y, x+w, y+h))
-            now_save_path = os.path.join(USER_PATH, "png", f"region_{i}.png")
-            # 保存截图到指定目录
-            screenshot.save(os.path.join(USER_PATH, "png", f"screenshot.png"))
-            cropped_img.save(now_save_path)
-            save_path.append(now_save_path)
 
-        return save_path
-    else:
-        print("Window with title not found.")
-        return None
 
 def ocr_image_chi(image_path):
     # 使用Tesseract进行OCR识别
@@ -87,12 +100,12 @@ def ocr_with_custom_dict(image_path, custom_dict_path):
     # 运行 OCR
     custom_config = f'--user-words {",".join(custom_words)}'
     text = pytesseract.image_to_string(Image.open(image_path), config=custom_config, lang='chi_sim')
-    if text == "":
-        text = pytesseract.image_to_string(Image.open(image_path), config=custom_config, lang='chi_sim')
     return autoreplace(text.replace("\n", ""))
 
 def ocr_thread(image_path, custom_dict_path, result_queue, i):
     text = ocr_with_custom_dict(image_path, custom_dict_path)
+    if i == 4 and text == "":
+        text = "n. 防腐剂"
     result_queue.update({i: text})
 
 replace_list = load_from_json(json_replace_path)
@@ -107,6 +120,7 @@ if __name__ == "__main__":
     ans_list = load_from_json(json_ans_path)
     for folder in folder_list:
         create_folder_if_not_exists(os.path.join(USER_PATH, folder))
+    get_all_windows()
     # 截图窗口
     while True:
         screenshot_path_list = capture_screenshot()
@@ -157,11 +171,17 @@ if __name__ == "__main__":
             locate = new_list.index(ex_ans_str) # 答案位置
             print(ex_ans_str, locate)
             targety = [520, 612, 704, 796] # 答案相对坐标
-            target_y = targety[locate] * scale_height
-            pyautogui.click(mumu_x + 260 * scale_width, mumu_y + target_y)
+            target_y = int((targety[locate] - 40) * scale_height)
+            #pyautogui.click(mumu_x + 260 * scale_width, mumu_y + target_y)
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
             time.sleep(0.9)
         else:
-            pyautogui.click(mumu_x + 260 * scale_width, mumu_y + 650 * scale_height)
-            time.sleep(0.9)
-            pyautogui.click(mumu_x + 400 * scale_width, mumu_y + 880 * scale_height)
-            time.sleep(5)
+            #pyautogui.click(mumu_x + 260 * scale_width, mumu_y + 650 * scale_height)
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
+            time.sleep(0.5)
+            #pyautogui.click(mumu_x + 400 * scale_width, mumu_y + 880 * scale_height)
+            win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(400 * scale_width), int(840 * scale_height)))
+            win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(400 * scale_width), int(840 * scale_height)))
+            time.sleep(4.8)

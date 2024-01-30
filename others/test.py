@@ -1,30 +1,26 @@
-import jieba
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-def calculate_cosine_similarity(text1, text2):
-    # 使用 jieba 分词
-    words1 = ' '.join(jieba.cut(text1))
-    words2 = ' '.join(jieba.cut(text2))
-
-    vectorizer = CountVectorizer().fit_transform([words1, words2])
-    vectors = vectorizer.toarray()
-    similarity = cosine_similarity(vectors[0].reshape(1, -1), vectors[1].reshape(1, -1))
-    
-    return similarity[0][0]
-
-def calculate_jaccard_similarity(text1, text2):
-    set1 = set(text1.split())
-    set2 = set(text2.split())
-    intersection = len(set1.intersection(set2))
-    union = len(set1.union(set2))
-    similarity = intersection / union
-    return similarity
-
-
-# 示例
-text1 = "我喜欢学习Python编程"
-text2 = "学习编程很有趣"
-
-similarity_score = calculate_cosine_similarity(text1, text2)
-print(f"相似度：{similarity_score}")
+import win32gui
+def get_window_properties(hwnd):
+    window_title = win32gui.GetWindowText(hwnd)
+    class_name = win32gui.GetClassName(hwnd)
+    window_text = win32gui.GetWindowText(hwnd)
+    window_rect = win32gui.GetWindowRect(hwnd)
+    return window_title, class_name, window_text, window_rect
+def enumerate_child_windows(parent_hwnd):
+    def callback(hwnd, windows):
+        windows.append(hwnd)
+        return True
+    child_windows = []
+    win32gui.EnumChildWindows(parent_hwnd, callback, child_windows)
+    return child_windows
+def print_window_info(hwnd):
+    window_title, class_name, window_text, window_rect = get_window_properties(hwnd)
+    print('--'*60)
+    print(f"窗口句柄：{hwnd}")
+    print(f"标题：{window_title}")
+    print(f"类名：{class_name}")
+    print(f"文本内容：{window_text}") 
+    print(f"坐标：{window_rect}")
+parent_hwnd = win32gui.FindWindow("Qt5156QWindowIcon", "Z")
+child_windows =enumerate_child_windows(parent_hwnd)
+for child_hwnd in child_windows:
+    print_window_info(child_hwnd)
