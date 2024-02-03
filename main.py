@@ -6,7 +6,6 @@ import json
 import time
 from fuzzywuzzy import process
 import threading
-import sys
 import os
 import win32api, win32gui, win32con
 mumu_hwnd, mumu_child_hwnd = 0,0
@@ -59,7 +58,7 @@ def capture_screenshot():
     regions = [(q_x, q_y, q_width, q_height), (a_x, a1_y, a_width, a_height), (a_x, a2_y, a_width, a_height), (a_x, a3_y, a_width, a_height), (a_x, a4_y, a_width, a_height)]
 
     save_path = []
-    app = QApplication(sys.argv)
+
     # 截取窗口的屏幕截图
     screen = QApplication.primaryScreen()
     screenshot = screen.grabWindow(mumu_child_hwnd).toImage()
