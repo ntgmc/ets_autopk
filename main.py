@@ -8,6 +8,7 @@ from fuzzywuzzy import process
 import threading
 import os
 import win32api, win32gui, win32con
+import sys
 mumu_hwnd, mumu_child_hwnd = 0,0
 USER_PATH = os.path.dirname(os.path.abspath(__file__))
 ques_path = os.path.join(USER_PATH, "ocr_custom", "ques.txt")
@@ -46,7 +47,7 @@ def get_all_windows():
     print(mumu_child_hwnd)
 def split_qimage(qimage, x, y, width, height):
     # 创建一个子图像
-    sub_image = qimage.copy(x, y, width, height)
+    sub_image = qimage.copy(int(x), int(y), int(width), int(height))
     return sub_image
 def capture_screenshot():
     window_rect = win32gui.GetWindowRect(mumu_child_hwnd)
@@ -58,7 +59,7 @@ def capture_screenshot():
     regions = [(q_x, q_y, q_width, q_height), (a_x, a1_y, a_width, a_height), (a_x, a2_y, a_width, a_height), (a_x, a3_y, a_width, a_height), (a_x, a4_y, a_width, a_height)]
 
     save_path = []
-
+    app = QApplication(sys.argv)
     # 截取窗口的屏幕截图
     screen = QApplication.primaryScreen()
     screenshot = screen.grabWindow(mumu_child_hwnd).toImage()
