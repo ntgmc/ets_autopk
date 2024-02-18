@@ -9,6 +9,7 @@ import threading
 import os
 import win32api, win32gui, win32con
 import sys
+import re
 mumu_hwnd, mumu_child_hwnd = 0,0
 USER_PATH = os.path.dirname(os.path.abspath(__file__))
 ques_path = os.path.join(USER_PATH, "ocr_custom", "ques.txt")
@@ -109,9 +110,41 @@ def ocr_thread(image_path, custom_dict_path, result_dict, i):
 
 replace_list = load_from_json(json_replace_path)
 def autoreplace(text):
-    for key, value in replace_list.items():
-        text = text.replace(key, value)
+    text = text.replace("\n", "").replace(" ", "")
+    if text == "":
+        return "Finalchoice"
+    for rule in replace_list:
+        if re.search(rule['pattern'], text):
+            text = rule['replacement']
+            return text
     return text
+    
+    
+def levenshtein_distance(s1, s2):
+    if len(s1) < len(s2):
+        return levenshtein_distance(s2, s1)
+
+    if len(s2) == 0:
+        return len(s1)
+
+    previous_row = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        current_row = [i + 1]
+        for j, c2 in enumerate(s2):
+            insertions = previous_row[j + 1] + 1
+            deletions = current_row[j] + 1
+            substitutions = previous_row[j] + (c1 != c2)
+            current_row.append(min(insertions, deletions, substitutions))
+        previous_row = current_row
+
+    return previous_row[-1]
+
+def similarity_score(s1, s2):
+    max_len = max(len(s1), len(s2))
+    if max_len == 0:
+        return 1.0
+    distance = levenshtein_distance(s1, s2)
+    return 1.0 - (distance / max_len)
 
 if __name__ == "__main__":
     words = load_from_json(json_words_path)
@@ -179,9 +212,12 @@ if __name__ == "__main__":
             ans = words.get(ques_str)
             print(f"Ques:{ques_str}. Ans:{ans}")
             ex_ans = process.extractOne(ans, new_list)
-            ex_ans_str = ex_ans[0]
+            if similarity_score(ex_ans[0], ans) < 0.9 and "Finalchoice" in new_list:
+                ex_ans_str = "Finalchoice"
+            else:
+                ex_ans_str = ex_ans[0]
             locate = new_list.index(ex_ans_str) # 答案位置
-            print("Chooce：", ex_ans_str, locate)
+            print("Chooce：", ex_ans_str,similarity_score(ex_ans[0], ans), locate)
             if ex_ans_str != ans: # 非精确匹配时才输出log           
                 with open(log_file_path, 'a', encoding='utf-8') as log_file:
                     log_file.write(str(result_text) + '\n')
