@@ -25,14 +25,11 @@ def load_from_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as json_file:
         data = json.load(json_file)
     return data
-
 # 设置 Tesseract OCR 引擎路径（根据你的安装路径进行修改）
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
 def create_folder_if_not_exists(folder_path):
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
-
 def enumerate_child_windows(parent_hwnd):
     def callback(hwnd, windows):
         windows.append(hwnd)
@@ -58,7 +55,6 @@ def capture_screenshot():
     a_x, a_width, a_height = 40 * scale_width, 453 * scale_width, 74 # 相对坐标
     a1_y, a2_y, a3_y, a4_y = 440 * scale_height, 535 * scale_height, 627 * scale_height, 727 * scale_height # 相对坐标
     regions = [(q_x, q_y, q_width, q_height), (a_x, a1_y, a_width, a_height), (a_x, a2_y, a_width, a_height), (a_x, a3_y, a_width, a_height), (a_x, a4_y, a_width, a_height)]
-
     save_path = []
     app = QApplication(sys.argv)
     # 截取窗口的屏幕截图
@@ -74,24 +70,25 @@ def capture_screenshot():
         save_path.append(now_save_path)
     screenshot.save(os.path.join(USER_PATH, "png", f"screenshot.png"))
     return save_path
-
-
-
+def get_pixel_color(image_path, x, y):
+    # 打开截图
+    image = Image.open(image_path)
+    # 获取像素颜色
+    pixel_color = image.getpixel((x, y))
+    return pixel_color
 def ocr_image_chi(image_path):
     # 使用Tesseract进行OCR识别
     image = Image.open(image_path)
     text = pytesseract.image_to_string(image, lang='chi_sim')
-    if text == "":
+    if text.replace("\n", "").replace(" ", "") == "":
         text = pytesseract.image_to_string(image, lang='chi_sim') # 多给一次机会
     return text.replace("\n", "")
-
 def ocr_image_eng(image_path):
     # 使用Tesseract进行OCR识别
     image = Image.open(image_path)
     text = pytesseract.image_to_string(image, lang='eng')
     
     return text.replace("\n", "")
-
 def ocr_with_custom_dict(image_path, custom_dict_path):
     # 读取自定义词库
     with open(custom_dict_path, 'r', encoding='utf-8') as f:
@@ -100,14 +97,12 @@ def ocr_with_custom_dict(image_path, custom_dict_path):
     # 运行 OCR
     custom_config = f'--user-words {",".join(custom_words)}'
     text = pytesseract.image_to_string(Image.open(image_path), config=custom_config, lang='chi_sim')
+    if text.replace("\n", "").replace(" ", "") == "":
+        text = pytesseract.image_to_string(Image.open(image_path), config=custom_config, lang='chi_sim')
     return autoreplace(text)
-
 def ocr_thread(image_path, custom_dict_path, result_dict, i):
     text = ocr_with_custom_dict(image_path, custom_dict_path)
-    if i == 4 and text == "":
-        text = "n. 防腐剂"
     result_dict.update({i: text})
-
 replace_list = load_from_json(json_replace_path)
 def autoreplace(text):
     text = text.replace("\n", "").replace(" ", "")
@@ -118,15 +113,11 @@ def autoreplace(text):
             text = rule['replacement']
             return text
     return text
-    
-    
 def levenshtein_distance(s1, s2):
     if len(s1) < len(s2):
         return levenshtein_distance(s2, s1)
-
     if len(s2) == 0:
         return len(s1)
-
     previous_row = range(len(s2) + 1)
     for i, c1 in enumerate(s1):
         current_row = [i + 1]
@@ -136,36 +127,29 @@ def levenshtein_distance(s1, s2):
             substitutions = previous_row[j] + (c1 != c2)
             current_row.append(min(insertions, deletions, substitutions))
         previous_row = current_row
-
     return previous_row[-1]
-
 def similarity_score(s1, s2):
     max_len = max(len(s1), len(s2))
     if max_len == 0:
         return 1.0
     distance = levenshtein_distance(s1, s2)
     return 1.0 - (distance / max_len)
-
 if __name__ == "__main__":
     words = load_from_json(json_words_path)
     ques_list = load_from_json(json_ques_path)
     ans_list = load_from_json(json_ans_path)
     for folder in folder_list:
         create_folder_if_not_exists(os.path.join(USER_PATH, folder))
-    get_all_windows()
-    # 截图窗口
+    get_all_windows() # 获取窗口句柄
     while True:
-        screenshot_path_list = capture_screenshot()
+        screenshot_path_list = capture_screenshot() # 截图窗口
         result_text = []
         ques = ""
         ans = ""
         i = 0
-
         # 使用字典存储线程结果
         result_dict = {}
-
         threads = []
-
         for screenshot_path in screenshot_path_list:
             if screenshot_path:
                 # 创建线程
@@ -175,21 +159,17 @@ if __name__ == "__main__":
                     thread = threading.Thread(target=ocr_thread, args=(screenshot_path, ans_path, result_dict, i))
                 threads.append(thread)
                 i += 1
-
         # 启动所有线程
         for thread in threads:
             thread.start()
-
         # 等待所有线程完成
         for thread in threads:
             thread.join()
-
-        # 从队列中获取结果
+        # 从字典中获取结果
         if result_dict:
             result_text = [result_dict[key] for key in sorted(result_dict.keys())]
-
         # 输出识别结果
-        print(result_text)
+        print(f"[{time.time()}]{result_text}")
         if result_text[1] == "恭喜你!":
             win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
             win32api.PostMessage(mumu_child_hwnd,win32con.WM_LBUTTONUP, 0, win32api.MAKELONG(int(260 * scale_width), int(610 * scale_height)))
@@ -212,15 +192,16 @@ if __name__ == "__main__":
             ans = words.get(ques_str)
             print(f"Ques:{ques_str}. Ans:{ans}")
             ex_ans = process.extractOne(ans, new_list)
-            if similarity_score(ex_ans[0], ans) < 0.9 and "Finalchoice" in new_list:
+            score = similarity_score(ex_ans[0], ans)
+            if score < 0.8 and "Finalchoice" in new_list: # 匹配分数低于0.8且存在Finalchoice就选择Finalchoice
                 ex_ans_str = "Finalchoice"
             else:
                 ex_ans_str = ex_ans[0]
             locate = new_list.index(ex_ans_str) # 答案位置
-            print("Chooce：", ex_ans_str,similarity_score(ex_ans[0], ans), locate)
+            print("Chooce：", ex_ans_str, score, locate + 1)
             if ex_ans_str != ans: # 非精确匹配时才输出log           
                 with open(log_file_path, 'a', encoding='utf-8') as log_file:
-                    log_file.write(str(result_text) + '\n')
+                    log_file.write(f"[{time.time()}]{str(result_text)}\n")
             targety = [520, 612, 704, 796] # 答案相对y坐标
             target_y = int((targety[locate] - 40) * scale_height)
             win32api.PostMessage(mumu_child_hwnd, win32con.WM_LBUTTONDOWN, win32con.MK_LBUTTON, win32api.MAKELONG(int(260 * scale_width), target_y))
