@@ -4,6 +4,10 @@
         "replacement": "n.(非正式用语)汉堡包"
     },
     {
+        "pattern": "非了",
+        "replacement": "n.(非正式用语)汉堡包"
+    },
+    {
         "pattern": "薄饼",
         "replacement": "n.(尤指墨西哥人食用的)玉米薄饼"
     },
@@ -36,7 +40,7 @@
         "replacement": "n.咖喱"
     },
     {
-        "pattern": "墨西哥",
+        "pattern": "墨西",
         "replacement": "n.(尤指墨西哥人食用的)玉米薄饼"
     },
     {
@@ -100,8 +104,44 @@
         "replacement": "n.固体"
     },
     {
+        "pattern": "固体",
+        "replacement": "n.固体"
+    },
+    {
         "pattern": "酱汁",
         "replacement": "n.酱汁，调味汁"
+    },
+    {
+        "pattern": "厚片的肉",
+        "replacement": "n.(供煎，烤等的)厚片的肉(尤指牛肉)"
+    },
+    {
+        "pattern": "美味",
+        "replacement": "adj.美味的，可口的"
+    },
+    {
+        "pattern": "味的",
+        "replacement": "adj.美味的，可口的"
+    },
+    {
+        "pattern": "调味汁",
+        "replacement": "n.酱汁，调味汁"
+    },
+    {
+        "pattern": "调味汗",
+        "replacement": "n.酱汁，调味汁"
+    },
+    {
+        "pattern": "效汁",
+        "replacement": "n.酱汁，调味汁"
+    },
+    {
+        "pattern": "广大的",
+        "replacement": "adj.广大的; 巨大的"
+    },
+    {
+        "pattern": "移",
+        "replacement": "n.移民"
     },
     {
         "pattern": "健康",
