@@ -23,9 +23,9 @@
 修改[json\replace.json](https://github.com/ntgmc/ets_autopk/blob/main/json/replace.json)  
 格式为：`"要替换的词": "替换后的词",`  
 ## 脚本原理
-- 使用Tesseract-OCR进行本地OCR  
-- 使用win32gui获取模拟器窗口及其子窗口句柄  
-- 使用PyQt及窗口句柄进行截图  
-- 使用threading进行多线程OCR  
-- 使用fuzzywuzzy进行模糊匹配  
-- 使用win32api及win32con模拟鼠标点击  
+- 获取窗口句柄并截取屏幕截图。  
+- 使用 pytesseract 进行 OCR 识别，识别出问题和答案。  
+- 根据识别结果进行逻辑判断：  
+- - 如果识别结果为 "恭喜你!" 或 "PK结果提交失败"，则模拟点击一些按钮。  
+- - 否则，通过模糊匹配和相似度评分找到最匹配的答案，并模拟点击该答案所在的位置。  
+- 记录识别结果日志，如果识别结果不准确，则记录到日志文件中。  
